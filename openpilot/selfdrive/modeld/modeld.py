@@ -293,6 +293,9 @@ def main(demo=False):
     mt2 = time.perf_counter()
     model_execution_time = mt2 - mt1
 
+    if frame_id % 20 == 0:
+      print(f"MODELD_TIMING exec={model_execution_time*1000:.0f}ms dropped={vipc_dropped_frames}", flush=True)  # TEMP DIAG
+
     if model_output is not None:
       modelv2_send = messaging.new_message('modelV2')
       drivingdata_send = messaging.new_message('drivingModelData')

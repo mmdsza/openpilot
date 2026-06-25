@@ -42,7 +42,9 @@ elif 'QCOM' in available:
   tg_flags = f'DEV={tg_backend} IMAGE=1 FLOAT16=1 NOLOCALS=1 JIT_BATCH_SIZE=0 OPENPILOT_HACKS=1'
 else:
   tg_backend = 'CPU'
-  tg_flags = f'DEV=CPU' if arch == 'Darwin' else 'DEV=CPU:LLVM'
+  # BEAM kernel search makes the CPU model run several times faster (numerically
+  # equivalent), which the MetaDrive sim needs to keep up near real time on CI.
+  tg_flags = f'DEV=CPU BEAM=2' if arch == 'Darwin' else 'DEV=CPU:LLVM BEAM=2'
 
 tg_devices = { # which device to put jit inputs to at runtime
   'openpilot.selfdrive.modeld.modeld': {
