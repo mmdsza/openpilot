@@ -1,0 +1,74 @@
+# ITERATION-ONLY workflow (not part of the #30693 deliverable).
+# The real change is the re-enabled `simulator_driving` job in tests.yaml; the steps
+# below are kept identical to it so green runs here are valid proof. Deleted before the PR.
+name: sim-iter
+
+on:
+  push:
+  workflow_dispatch:
+
+concurrency:
+  group: sim-iter-${{ github.ref }}-${{ github.sha }}
+  cancel-in-progress: false
+
+env:
+  CI: 1
+  PYTHONPATH: ${{ github.workspace }}
+
+jobs:
+  simulator_driving:
+    name: simulator driving
+    runs-on: ubuntu-24.04
+    env:
+      LIBGL_ALWAYS_SOFTWARE: "1"
+      GALLIUM_DRIVER: llvmpipe
+      MESA_GL_VERSION_OVERRIDE: "3.3"
+      MESA_GLSL_VERSION_OVERRIDE: "330"
+      ONNXCPU: "1"
+      COLLECT_LOGS: "1"
+      MAX_TIME_PER_STEP: "120"
+      LOG_ROOT: ${{ github.workspace }}/sim_logs
+    steps:
+    - uses: actions/checkout@v6
+      with:
+        submodules: true
+    - name: Free disk space
+      run: |
+        sudo rm -rf /usr/share/dotnet /opt/ghc "$AGENT_TOOLSDIRECTORY" /usr/local/lib/android || true
+        df -h /
+    - name: Install MetaDrive rendering deps
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y --no-install-recommends \
+          libgl1-mesa-dri libglx-mesa0 libglu1-mesa0 mesa-utils
+    - run: ./tools/op.sh setup
+    - name: Install MetaDrive
+      run: |
+        export PATH="$HOME/.local/bin:$PATH"
+        source .venv/bin/activate
+        uv pip install "metadrive-simulator @ git+https://github.com/commaai/metadrive.git@minimal"
+        python -c "from metadrive.pull_asset import pull_asset; pull_asset(False)"
+    - name: Build openpilot
+      timeout-minutes: 40
+      run: scons
+    - name: Driving test
+      timeout-minutes: 15
+      run: |
+        source openpilot/selfdrive/test/setup_xvfb.sh
+        glxinfo -B 2>/dev/null | grep -E "OpenGL renderer|OpenGL version" || true
+        pytest -s -v --tb=short -o addopts="" \
+          openpilot/tools/sim/tests/test_metadrive_bridge.py
+    - name: Check logs were recorded
+      if: always()
+      run: |
+        echo "Recorded files under $LOG_ROOT:"
+        find "$LOG_ROOT" -type f -printf "%10s  %p\n" 2>/dev/null | sort -k2 || true
+        test -n "$(find "$LOG_ROOT" -type f \( -name 'qlog*' -o -name 'rlog*' \) 2>/dev/null)"
+        test -n "$(find "$LOG_ROOT" -type f -name '*.hevc' 2>/dev/null)"
+    - name: Upload simulation logs
+      if: always()
+      uses: actions/upload-artifact@v6
+      with:
+        name: metadrive-logs-${{ github.run_id }}-${{ github.run_attempt }}
+        path: ${{ github.workspace }}/sim_logs
+        if-no-files-found: warn

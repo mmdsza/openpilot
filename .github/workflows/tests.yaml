@@ -196,19 +196,57 @@ jobs:
       (github.event.pull_request.head.repo.full_name == 'commaai/openpilot'))
       && fromJSON('["namespace-profile-amd64-8x16"]')
       || fromJSON('["ubuntu-24.04"]') }}
-    if: false  # FIXME: Started to timeout recently
+    env:
+      # software OpenGL: free runners have no GPU, so render MetaDrive with Mesa llvmpipe
+      LIBGL_ALWAYS_SOFTWARE: "1"
+      GALLIUM_DRIVER: llvmpipe
+      MESA_GL_VERSION_OVERRIDE: "3.3"
+      MESA_GLSL_VERSION_OVERRIDE: "330"
+      ONNXCPU: "1"  # no GPU for modeld either
+      COLLECT_LOGS: "1"  # keep loggerd/encoderd running to record artifacts
+      MAX_TIME_PER_STEP: "120"  # extra headroom for slow software-rendered startup
+      LOG_ROOT: ${{ github.workspace }}/sim_logs
     steps:
     - uses: actions/checkout@v6
       with:
         submodules: true
+    - name: Install MetaDrive rendering deps
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y --no-install-recommends \
+          libgl1-mesa-dri libglx-mesa0 libglu1-mesa0 mesa-utils
     - run: ./tools/op.sh setup
+    - name: Install MetaDrive
+      run: |
+        export PATH="$HOME/.local/bin:$PATH"
+        source .venv/bin/activate
+        uv pip install "metadrive-simulator @ git+https://github.com/commaai/metadrive.git@minimal"
+        python -c "from metadrive.pull_asset import pull_asset; pull_asset(False)"
     - name: Build openpilot
+      timeout-minutes: 40
       run: scons
     - name: Driving test
-      timeout-minutes: 2
+      timeout-minutes: 15
       run: |
         source openpilot/selfdrive/test/setup_xvfb.sh
-        pytest -s openpilot/tools/sim/tests/test_metadrive_bridge.py
+        glxinfo -B 2>/dev/null | grep -E "OpenGL renderer|OpenGL version" || true
+        pytest -s -v --tb=short -o addopts="" \
+          openpilot/tools/sim/tests/test_metadrive_bridge.py
+    - name: Check logs were recorded
+      if: always()
+      run: |
+        echo "Recorded files under $LOG_ROOT:"
+        find "$LOG_ROOT" -type f -printf "%10s  %p\n" 2>/dev/null | sort -k2 || true
+        # the bounty requires qlog, rlog and camera files; fail loudly if missing
+        test -n "$(find "$LOG_ROOT" -type f \( -name 'qlog*' -o -name 'rlog*' \) 2>/dev/null)"
+        test -n "$(find "$LOG_ROOT" -type f -name '*.hevc' 2>/dev/null)"
+    - name: Upload simulation logs
+      if: always()
+      uses: actions/upload-artifact@v6
+      with:
+        name: metadrive-logs-${{ github.run_id }}-${{ github.run_attempt }}
+        path: ${{ github.workspace }}/sim_logs
+        if-no-files-found: error
 
   create_ui_report:
     name: Create UI Report

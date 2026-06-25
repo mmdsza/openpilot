@@ -31,7 +31,8 @@ class TestSimBridgeBase:
     p_bridge = bridge.run(q, retries=10)
     self.processes.append(p_bridge)
 
-    max_time_per_step = 60
+    # software-rendered CI (no GPU) needs more headroom for metadrive startup/engagement
+    max_time_per_step = int(os.environ.get("MAX_TIME_PER_STEP", "60"))
 
     # Wait for bridge to startup
     start_waiting = time.monotonic()
@@ -72,8 +73,10 @@ class TestSimBridgeBase:
     assert min_counts_control_active == control_active, f"Simulator did not engage a minimal of {min_counts_control_active} steps was {control_active}"
 
     failure_states = []
+    # don't busy-wait: spinning here starves openpilot/metadrive of a CPU core on the
+    # 2-4 core CI runners, breaking real-time and causing spurious comm-issue failures
     while bridge.started.value:
-      continue
+      time.sleep(0.1)
 
     while not q.empty():
       state = q.get()

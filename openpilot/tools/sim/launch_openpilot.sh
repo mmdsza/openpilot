@@ -6,7 +6,12 @@ export SIMULATION="1"
 export SKIP_FW_QUERY="1"
 export FINGERPRINT="HONDA_CIVIC_2022"
 
-export BLOCK="${BLOCK},camerad,loggerd,encoderd,micd,logmessaged,manage_athenad"
+export BLOCK="${BLOCK},camerad,micd,logmessaged,manage_athenad"
+# loggerd/encoderd are blocked by default to save resources. Set COLLECT_LOGS=1 to
+# keep them running so qlog/rlog and the camera stream are recorded (e.g. for CI artifacts).
+if [[ -z "$COLLECT_LOGS" ]]; then
+  export BLOCK="${BLOCK},loggerd,encoderd"
+fi
 if [[ "$CI" ]]; then
   # TODO: offscreen UI should work
   export BLOCK="${BLOCK},ui"
