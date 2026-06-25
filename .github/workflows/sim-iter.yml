@@ -21,7 +21,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        run: [1, 2, 3, 4, 5, 6, 7, 8]
+        run: [1]
     runs-on: ubuntu-24.04
     env:
       LIBGL_ALWAYS_SOFTWARE: "1"
@@ -30,6 +30,7 @@ jobs:
       MESA_GLSL_VERSION_OVERRIDE: "330"
       ONNXCPU: "1"
       COLLECT_LOGS: "1"
+      SIM_DIAG: "1"
       MAX_TIME_PER_STEP: "120"
       MAX_FILTER_REWIND_TIME: "5"  # EXPERIMENT: tolerate high CPU modeld latency in sim
       SIM_LOG_OUT: ${{ github.workspace }}/sim_logs
@@ -57,7 +58,7 @@ jobs:
       uses: actions/cache@v4
       with:
         path: ~/.cache/tinygrad
-        key: tg-beam-cpu-v1
+        key: tg-beam-cpu-v2
     - name: Build openpilot
       timeout-minutes: 50
       run: scons

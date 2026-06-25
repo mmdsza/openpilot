@@ -1,3 +1,4 @@
+import os
 import signal
 import threading
 import functools
@@ -199,6 +200,12 @@ Ignition: {self.simulator_state.ignition} Engaged: {self.simulator_state.is_enga
       # don't print during test, so no print/IO Block between OP and metadrive processes
       if not self.test_run and self.rk.frame % 25 == 0:
         self.print_status()
+
+      if os.environ.get("SIM_DIAG") and self.rk.frame % 100 == 0:  # TEMP DIAG
+        v = self.simulator_state.velocity
+        spd = (v.x ** 2 + v.y ** 2) ** 0.5 if v is not None else -1
+        accel = self.simulated_car.sm['carControl'].actuators.accel
+        print(f"SIM_DIAG engaged={self.simulator_state.is_engaged} speed={spd:.2f} accel={accel:.2f} thr={throttle_out:.2f} brake={brake_out:.2f}", flush=True)
 
       self.started.value = True
 
