@@ -21,16 +21,15 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        run: [1, 2, 3, 4, 5, 6]
+        run: [1, 2, 3, 4, 5, 6, 7, 8]
     runs-on: ubuntu-24.04
     env:
       LIBGL_ALWAYS_SOFTWARE: "1"
       GALLIUM_DRIVER: llvmpipe
-      LP_NUM_THREADS: "2"  # cap llvmpipe so software rendering leaves CPU for modeld (real-time)
       MESA_GL_VERSION_OVERRIDE: "3.3"
       MESA_GLSL_VERSION_OVERRIDE: "330"
       ONNXCPU: "1"
-      COLLECT_LOGS: ""  # EXPERIMENT: logging off to isolate encoderd CPU impact
+      COLLECT_LOGS: "1"
       MAX_TIME_PER_STEP: "120"
       SIM_LOG_OUT: ${{ github.workspace }}/sim_logs
     steps:
