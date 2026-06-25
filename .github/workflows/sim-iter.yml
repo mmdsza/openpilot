@@ -26,6 +26,7 @@ jobs:
     env:
       LIBGL_ALWAYS_SOFTWARE: "1"
       GALLIUM_DRIVER: llvmpipe
+      LP_NUM_THREADS: "2"  # cap llvmpipe so software rendering leaves CPU for modeld (real-time)
       MESA_GL_VERSION_OVERRIDE: "3.3"
       MESA_GLSL_VERSION_OVERRIDE: "330"
       ONNXCPU: "1"
