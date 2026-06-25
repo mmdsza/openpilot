@@ -21,7 +21,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        run: [1, 2, 3]
+        run: [1, 2, 3, 4, 5, 6, 7, 8]
     runs-on: ubuntu-24.04
     env:
       LIBGL_ALWAYS_SOFTWARE: "1"
@@ -53,8 +53,13 @@ jobs:
         source .venv/bin/activate
         uv pip install "metadrive-simulator @ git+https://github.com/commaai/metadrive.git@minimal"
         python -c "from metadrive.pull_asset import pull_asset; pull_asset(False)"
+    - name: Cache tinygrad BEAM kernels
+      uses: actions/cache@v4
+      with:
+        path: ~/.cache/tinygrad
+        key: tg-beam-cpu-v1
     - name: Build openpilot
-      timeout-minutes: 40
+      timeout-minutes: 50
       run: scons
     - name: Driving test
       timeout-minutes: 15
