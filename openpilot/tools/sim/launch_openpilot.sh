@@ -13,8 +13,9 @@ if [[ -z "$COLLECT_LOGS" ]]; then
   export BLOCK="${BLOCK},loggerd,encoderd"
 fi
 if [[ "$CI" ]]; then
+  # no display or audio device in CI: the offscreen UI and soundd (alert audio) can't run
   # TODO: offscreen UI should work
-  export BLOCK="${BLOCK},ui"
+  export BLOCK="${BLOCK},ui,soundd"
 fi
 
 python3 -c "from openpilot.selfdrive.test.helpers import set_params_enabled; set_params_enabled()"
