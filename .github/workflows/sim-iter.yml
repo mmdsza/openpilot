@@ -30,7 +30,7 @@ jobs:
       MESA_GL_VERSION_OVERRIDE: "3.3"
       MESA_GLSL_VERSION_OVERRIDE: "330"
       ONNXCPU: "1"
-      COLLECT_LOGS: "1"
+      COLLECT_LOGS: ""  # EXPERIMENT: logging off to isolate encoderd CPU impact
       MAX_TIME_PER_STEP: "120"
       SIM_LOG_OUT: ${{ github.workspace }}/sim_logs
     steps:
@@ -80,8 +80,8 @@ jobs:
       run: |
         echo "Recorded files under $SIM_LOG_OUT:"
         find "$SIM_LOG_OUT" -type f -printf "%10s  %p\n" 2>/dev/null | sort -k2 || true
-        test -n "$(find "$SIM_LOG_OUT" -type f \( -name 'qlog*' -o -name 'rlog*' \) 2>/dev/null)"
-        test -n "$(find "$SIM_LOG_OUT" -type f -name '*.hevc' 2>/dev/null)"
+        test -n "$(find "$SIM_LOG_OUT" -type f \( -name 'qlog*' -o -name 'rlog*' \) 2>/dev/null)" || echo "WARN: no qlog/rlog (logging off for experiment)"
+        test -n "$(find "$SIM_LOG_OUT" -type f -name '*.hevc' 2>/dev/null)" || echo "WARN: no hevc (logging off for experiment)"
     - name: Upload simulation logs
       if: always()
       uses: actions/upload-artifact@v6
