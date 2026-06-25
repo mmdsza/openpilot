@@ -1,3 +1,4 @@
+import time
 import numpy as np
 
 from msgq.visionipc import VisionIpcServer, VisionStreamType
@@ -64,7 +65,11 @@ class Camerad:
     return rgb_to_nv12(rgb)
 
   def _send_yuv(self, yuv, frame_id, pub_type, yuv_type):
-    eof = int(frame_id * 0.05 * 1e9)
+    # Timestamp frames on the real monotonic clock (same clock as new_message's logMonoTime,
+    # used by the simulated IMU). The old frame_id*0.05 assumed a perfect 20Hz render; when
+    # software rendering can't keep up the synthetic clock drifts behind wall-clock without
+    # bound, so locationd rejects cameraOdometry ("older than max rewind") and never engages.
+    eof = int(time.monotonic() * 1e9)
     self.vipc_server.send(yuv_type, yuv, frame_id, eof, eof)
 
     dat = messaging.new_message(pub_type, valid=True)
