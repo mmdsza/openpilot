@@ -56,8 +56,20 @@ jobs:
       run: |
         source openpilot/selfdrive/test/setup_xvfb.sh
         glxinfo -B 2>/dev/null | grep -E "OpenGL renderer|OpenGL version" || true
-        pytest -s -v --tb=short -o addopts="" \
-          openpilot/tools/sim/tests/test_metadrive_bridge.py
+        nproc; free -h
+        ( while true; do echo "$(date +%T) $(free -m | awk '/Mem:/{print "used="$3" avail="$7}') load:$(cut -d" " -f1-3 /proc/loadavg)"; sleep 2; done ) > /tmp/mem.log 2>&1 &
+        SAMP=$!
+        set +e
+        pytest -s -v --tb=short -o addopts="" openpilot/tools/sim/tests/test_metadrive_bridge.py
+        RC=$?
+        kill $SAMP 2>/dev/null
+        exit $RC
+    - name: Diagnose failure
+      if: failure()
+      run: |
+        echo "=== memory/load timeline ==="; tail -80 /tmp/mem.log || true
+        echo "=== free now ==="; free -h
+        echo "=== dmesg OOM ==="; sudo dmesg -T 2>/dev/null | grep -iE "out of memory|killed process|oom-kill|oom_reaper|Out of memory" | tail -40 || echo "(none / dmesg unavailable)"
     - name: Check logs were recorded
       if: always()
       run: |
