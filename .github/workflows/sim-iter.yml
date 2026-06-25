@@ -27,7 +27,7 @@ jobs:
       ONNXCPU: "1"
       COLLECT_LOGS: "1"
       MAX_TIME_PER_STEP: "120"
-      LOG_ROOT: ${{ github.workspace }}/sim_logs
+      SIM_LOG_OUT: ${{ github.workspace }}/sim_logs
     steps:
     - uses: actions/checkout@v6
       with:
@@ -40,7 +40,7 @@ jobs:
       run: |
         sudo apt-get update
         sudo apt-get install -y --no-install-recommends \
-          libgl1-mesa-dri libglx-mesa0 libglu1-mesa0 mesa-utils
+          libgl1-mesa-dri libglx-mesa0 libegl-mesa0 mesa-utils
     - run: ./tools/op.sh setup
     - name: Install MetaDrive
       run: |
@@ -61,10 +61,10 @@ jobs:
     - name: Check logs were recorded
       if: always()
       run: |
-        echo "Recorded files under $LOG_ROOT:"
-        find "$LOG_ROOT" -type f -printf "%10s  %p\n" 2>/dev/null | sort -k2 || true
-        test -n "$(find "$LOG_ROOT" -type f \( -name 'qlog*' -o -name 'rlog*' \) 2>/dev/null)"
-        test -n "$(find "$LOG_ROOT" -type f -name '*.hevc' 2>/dev/null)"
+        echo "Recorded files under $SIM_LOG_OUT:"
+        find "$SIM_LOG_OUT" -type f -printf "%10s  %p\n" 2>/dev/null | sort -k2 || true
+        test -n "$(find "$SIM_LOG_OUT" -type f \( -name 'qlog*' -o -name 'rlog*' \) 2>/dev/null)"
+        test -n "$(find "$SIM_LOG_OUT" -type f -name '*.hevc' 2>/dev/null)"
     - name: Upload simulation logs
       if: always()
       uses: actions/upload-artifact@v6
