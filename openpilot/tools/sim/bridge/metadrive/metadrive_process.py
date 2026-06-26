@@ -1,4 +1,5 @@
 import math
+import os
 import time
 import numpy as np
 
@@ -125,7 +126,9 @@ def metadrive_process(dual_camera: bool, config: dict, camera_array, wide_camera
       start_time = time.monotonic()
 
     if rk.frame % 5 == 0:
+      _t0 = time.perf_counter()
       _, _, terminated, _, _ = env.step(vc)
+      _t1 = time.perf_counter()
       timeout = True if start_time is not None and time.monotonic() - start_time >= test_duration else False
       lane_idx_curr, on_lane = get_current_lane_info(env.vehicle)
       out_of_lane = lane_idx_curr != lane_idx_prev or not on_lane
@@ -149,6 +152,8 @@ def metadrive_process(dual_camera: bool, config: dict, camera_array, wide_camera
       if dual_camera:
         wide_road_image[...] = get_cam_as_rgb("rgb_wide")
       road_image[...] = get_cam_as_rgb("rgb_road")
+      if os.environ.get("SIM_DIAG") and rk.frame % 100 == 0:  # TEMP DIAG
+        print(f"MD_TIMING step={(_t1-_t0)*1000:.0f}ms render={(time.perf_counter()-_t1)*1000:.0f}ms", flush=True)
       image_lock.release()
 
     rk.keep_time()
