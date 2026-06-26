@@ -71,6 +71,12 @@ class MetaDriveBridge(SimulatorBridge):
         enable_reverse=False,
         render_vehicle=False,
         image_source="rgb_road",
+        # openpilot drives from the camera; metadrive's default laser sensors are unused
+        # and their per-step raycasting dominates env.step() (~700ms on CI), starving the
+        # physics of real time. Disable them so the sim runs near real time.
+        lidar=dict(num_lasers=0, distance=0),
+        side_detector=dict(num_lasers=0, distance=0),
+        lane_line_detector=dict(num_lasers=0, distance=0),
       ),
       sensors=sensors,
       image_on_cuda=_cuda_enable,
